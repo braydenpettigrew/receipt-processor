@@ -38,7 +38,6 @@ const calculatePoints = (receipt) => {
 
   // Customer earns 6 points if the day in the purchase date is odd
   const purchaseDay = purchaseDate.split("-")[2];
-  console.log("purchase day: ", purchaseDay);
   if (purchaseDay % 2 !== 0) {
     points += 6;
   }
@@ -55,6 +54,39 @@ const calculatePoints = (receipt) => {
 
 // Endpoint to process receipts
 app.post("/receipts/process", (req, res) => {
+  // Error Checking: Check for missing fields in the receipt
+  if (
+    !req.body.retailer ||
+    !req.body.purchaseDate ||
+    !req.body.purchaseTime ||
+    !req.body.items ||
+    !req.body.total
+  ) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
+  // Error Checking: Check for improperly formatted dates or times
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  const timeRegex = /^\d{2}:\d{2}$/;
+  if (
+    !dateRegex.test(req.body.purchaseDate) ||
+    !timeRegex.test(req.body.purchaseTime)
+  ) {
+    return res.status(400).json({ error: "Improperly formatted date or time" });
+  }
+
+  // Error Checking: Ensure that items is an array of objects with shortDescription and price fields
+  if (!Array.isArray(req.body.items) || req.body.items.length === 0) {
+    return res.status(400).json({ error: "Items must be an array" });
+  }
+  req.body.items.forEach((item) => {
+    if (!item.shortDescription || !item.price) {
+      return res
+        .status(400)
+        .json({ error: "Items must have shortDescription and price fields" });
+    }
+  });
+
   const receiptId = uuid.v4();
   const points = calculatePoints(req.body);
 
